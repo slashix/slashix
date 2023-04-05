@@ -55,3 +55,32 @@ def send_config_commands(device, command_list):
     except Exception as error:
         print(error)
 
+        
+  ====================================
+
+from netmiko import ConnectHandler
+from tqdm import tqdm
+
+def send_config_commands(device, command_list):
+    try:
+        with ConnectHandler(**device) as ssh:
+            ssh.enable()
+
+            # Разбиваем список команд на блоки по 500+ строк
+            block_size = 500
+            command_blocks = [command_list[i:i+block_size] for i in range(0, len(command_list), block_size)]
+
+            # Инициализируем прогресс-бар
+            pbar = tqdm(total=len(command_list))
+
+            # Выполняем каждый блок команд
+            for commands in command_blocks:
+                ssh.send_config_set(commands, delay_factor=2)
+                # Обновляем прогресс-бар
+                pbar.update(len(commands))
+
+            # Закрываем прогресс-бар
+            pbar.close()
+    except Exception as error:
+        print(error)
+
