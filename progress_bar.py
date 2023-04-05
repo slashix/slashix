@@ -38,10 +38,17 @@ def send_config_commands(device, command_list):
             chunks = [command_list[i:i+chunk_size] for i in range(0, len(command_list), chunk_size)]
 
             # Выполняем каждый блок команд
-            for chunk in chunks:
-                ssh.send_config_set(chunk, delay_factor=2)
-                # Обновляем прогресс-бар
-                pbar.update(len(chunk))
+            for i, chunk in enumerate(chunks):
+                if i == len(chunks) - 1 and len(chunk) < chunk_size:
+                    # Если это последний блок и он меньше 500 строк, то отправляем его целиком
+                    ssh.send_config_set(chunk, delay_factor=2)
+                    # Обновляем прогресс-бар
+                    pbar.update(len(chunk))
+                else:
+                    # Иначе отправляем блок размером в 500 строк
+                    ssh.send_config_set(chunk[:chunk_size], delay_factor=2)
+                    # Обновляем прогресс-бар
+                    pbar.update(chunk_size)
 
             # Закрываем прогресс-бар
             pbar.close()
