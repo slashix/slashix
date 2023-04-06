@@ -121,4 +121,40 @@ def send_config_commands(device, command_list):
 
     except Exception as error:
         print(error)
+======================================
+def sendconfigcommands(devicearg, commandsarg):
+    if cont != “Y”:
+        sys.exit(“действие отменено пользователем”)
+    try:
+        with ConnectHandler(**devicearg) as ssh:
+            ssh.enable()
+            # Делим список команд на блоки по 500+ строк
+            blocklist = []
+            block = []
+            for command in commandsarg:
+                block.append(command)
+                if “commit” in command:
+                    blocklist.append(block)
+                    block = []
+            if block:
+                blocklist.append(block)
+            # Инициализируем прогресс-бар
+            pbar = tqdm(total=len(commandsarg))
+            # Выполняем каждый блок команд
+            for block in blocklist:
+                block_len = len(block)
+                with ConnectHandler(**devicearg) as ssh_block:
+                    ssh_block.enable()
+                    commandsstr = “\n”.join(block)
+                    ssh_block.sendconfigset(commandsstr, exitconfigmode=False)
+                # Обновляем прогресс-бар
+                pbar.update(block_len)
+            # Закрываем прогресс-бар
+            pbar.close()
+    except netmiko.NetMikoAuthenticationException as err:
+        print(err)
+    except netmiko.NetMikoTimeoutException as err:
+        print(err)
+    except netmiko.exceptions.ReadTimeout as err:
+        print(err, “Can't print the output”)
 
