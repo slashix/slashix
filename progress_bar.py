@@ -157,4 +157,46 @@ def sendconfigcommands(devicearg, commandsarg):
         print(err)
     except netmiko.exceptions.ReadTimeout as err:
         print(err, “Can't print the output”)
+==================================
+import sys
+from netmiko import ConnectHandler
+from tqdm import tqdm
+
+def sendconfigcommands(devicearg, commandsarg, output_file):
+    if cont != 'Y':
+        sys.exit('действие отменено пользователем')
+    # Делим список команд на блоки по 500+ строк
+    blocklist = []
+    block = []
+    for command in commandsarg:
+        block.append(command)
+        if 'commit' in command:
+            blocklist.append(block)
+            block = []
+    if block:
+        blocklist.append(block)
+    # Инициализируем прогресс-бар
+    pbar = tqdm(total=len(commandsarg))
+    # Открываем файл для записи вывода
+    with open(output_file, 'w') as f:
+        # Выполняем каждый блок команд
+        for block in blocklist:
+            blocklen = len(block)
+            try:
+                with ConnectHandler(**devicearg) as sshblock:
+                    sshblock.enable()
+                    commandsstr = '\n'.join(block)
+                    # Перенаправляем вывод в файл
+                    output = sshblock.send_config_set(commandsstr)
+                    f.write(output)
+            except netmiko.NetMikoAuthenticationException as err:
+                print(err)
+            except netmiko.NetMikoTimeoutException as err:
+                print(err)
+            except netmiko.exceptions.ReadTimeout as err:
+                print(err, 'Can\'t print the output')
+            # Обновляем прогресс-бар
+            pbar.update(blocklen)
+    # Закрываем прогресс-бар
+    pbar.close()
 
