@@ -199,4 +199,29 @@ def sendconfigcommands(devicearg, commandsarg, output_file):
             pbar.update(blocklen)
     # Закрываем прогресс-бар
     pbar.close()
+===========================
+              def send_config_commands(device_arg, eth, result):
+    try:
+        with ConnectHandler(**device_arg) as sshblock:
+            command = f"dis cu int Eth-Trunk{eth} | i desc"
+            output = sshblock.send_command(command)
+            for vlanid in result:
+                eth_int = f"""
+                int Eth-Trunk{eth}.{vlanid}
+                {output}.{vlanid}
+                encapsulation dot1q vid {vlanid}
+                bridge-domain {vlanid}
 
+                #"""
+                print(eth_int)
+    except netmiko.NetMikoAuthenticationException as err:
+        print(err)
+    except netmiko.NetMikoTimeoutException as err:
+        print(err)
+    except netmiko.exceptions.ReadTimeout as err:
+        print(err, 'Can\'t print the output')
+
+if __name__ == "__main__":
+    if connect == "true":
+        for eth in result_eth:
+            send_config_commands(device_params_dict, eth, result)
